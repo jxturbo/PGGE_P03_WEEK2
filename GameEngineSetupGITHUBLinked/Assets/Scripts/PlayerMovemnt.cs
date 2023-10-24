@@ -37,7 +37,7 @@ public class PlayerMovemnt : MonoBehaviour
         playerAnim.SetFloat("PosX",x);
         playerAnim.SetFloat("PosZ",z);
         //used to rotate the player in the event you cant use the mouse to control camera "direction" \/
-        //transform.Rotate(0.0f, x * 50f * Time.deltaTime, 0.0f);
+        transform.Rotate(0.0f, x * 50f * Time.deltaTime, 0.0f);
         Vector3 move = transform.right * x + transform.forward * z;
 
         controller.Move(move * speed * Time.deltaTime);
