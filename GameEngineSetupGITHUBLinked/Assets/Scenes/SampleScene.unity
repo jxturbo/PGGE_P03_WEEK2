@@ -368,10 +368,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mPlayer: {fileID: 1480097641}
-  playerHeight: 10
-  mPositionOffset: {x: 0, y: 2, z: -2.5}
-  mAngleOffset: {x: 0, y: 0, z: 0}
-  mDamping: 1
+  playerHeight: 50
+  mPositionOffset: {x: 0, y: 10, z: -2.5}
+  mAngleOffset: {x: 90, y: 0, z: 0}
+  mDamping: 2
 --- !u!1 &1433766826
 GameObject:
   m_ObjectHideFlags: 0
