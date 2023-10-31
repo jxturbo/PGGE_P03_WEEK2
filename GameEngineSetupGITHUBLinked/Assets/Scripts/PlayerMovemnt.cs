@@ -13,27 +13,40 @@ public class PlayerMovemnt : MonoBehaviour
     public Animator playerAnim;
     public float x;
     public float z;
+    #if UNITY_ANDROID
+        public FixedJoystick mJoystick;
+    #endif
 
     // Update is called once per frame
     void Update()
     {
+        #if UNITY_STANDALONE
+                x = Input.GetAxis("Horizontal");
+                z = Input.GetAxis("Vertical");
+        #endif
+
+        #if UNITY_ANDROID
+                x = 2f * mJoystick.Horizontal;
+                z = 2f * mJoystick.Vertical;
+        #endif
+
         //checks if player is grounded by drawing a sphere
         isGrounded = controller.isGrounded;
         if(isGrounded && velocity.y <0)
         {
             velocity.y = -2f;
         }
-        if(Input.GetKey(KeyCode.LeftShift))
-        {
-            z = Input.GetAxis("Vertical");
-            speed = 6f;
-        }
-        else
-        {
-            z = Input.GetAxis("Vertical")/2;
-            speed = 3f;
-        }
-        x = Input.GetAxis("Horizontal");
+        // if(Input.GetKey(KeyCode.LeftShift))
+        // {
+        //     z = Input.GetAxis("Vertical");
+        //     speed = 6f;
+        // }
+        // else
+        // {
+        //     z = Input.GetAxis("Vertical")/2;
+        //     speed = 3f;
+        // }
+        // x = Input.GetAxis("Horizontal");
         playerAnim.SetFloat("PosX",x);
         playerAnim.SetFloat("PosZ",z);
         //used to rotate the player in the event you cant use the mouse to control camera "direction" \/
