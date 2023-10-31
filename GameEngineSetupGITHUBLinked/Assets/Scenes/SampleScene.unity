@@ -268,6 +268,8 @@ MonoBehaviour:
   playerAnim: {fileID: 1480097644}
   x: 0
   z: 0
+  mFollowCameraForward: 0
+  mTurnRate: 0
   mJoystick: {fileID: 1933145737}
 --- !u!1 &412858075
 GameObject:
@@ -530,7 +532,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mPlayer: {fileID: 1480097641}
   playerHeight: 50
-  mPositionOffset: {x: 0, y: 5, z: -2.5}
+  mPositionOffset: {x: 0, y: 2, z: -5}
   mAngleOffset: {x: 0, y: 0, z: 0}
   mDamping: 2
   mCameraType: 4
