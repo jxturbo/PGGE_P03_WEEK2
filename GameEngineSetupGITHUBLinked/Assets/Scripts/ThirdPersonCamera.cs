@@ -10,6 +10,13 @@ public class ThirdPersonCamera : MonoBehaviour
     public Vector3 mPositionOffset = new Vector3(0.0f, 2.0f, -2.5f);
     public Vector3 mAngleOffset = new Vector3(0.0f, 0.0f, 0.0f);
     public float mDamping = 1.0f;
+    public CameraType mCameraType = CameraType.Follow_Track_Pos;
+    public FixedTouchField mTouchField;
+    Dictionary<CameraType, TPCBase> mThirdPersonCameraDict = new Dictionary<CameraType, TPCBase>();
+    public float mMinPitch = -30.0f;
+    public float mMaxPitch = 30.0f;
+    public float mRotationSpeed = 50.0f;
+
 
 
     void Start() 
@@ -18,13 +25,43 @@ public class ThirdPersonCamera : MonoBehaviour
         GameConstants.Damping = mDamping;
         GameConstants.CameraPositionOffset = mPositionOffset;
         GameConstants.CameraAngleOffset = mAngleOffset;
+        GameConstants.MinPitch = mMinPitch;
+        GameConstants.MaxPitch = mMaxPitch;
+        GameConstants.RotationSpeed = mRotationSpeed;
 
         //mThirdPersonCamera = new TPCTrack(transform, mPlayer);
         //mThirdPersonCamera = new TPCFollowTrackPosition(transform, mPlayer);
         //mThirdPersonCamera = new TPCFollowTrackPositionAndRotation(transform, mPlayer);
-        mThirdPersonCamera = new TPCTopDown(transform, mPlayer);
+        //mThirdPersonCamera = new TPCTopDown(transform, mPlayer);
+
+        mThirdPersonCameraDict.Add(CameraType.Track, new TPCTrack(transform, mPlayer));
+        mThirdPersonCameraDict.Add(CameraType.Follow_Track_Pos, new TPCFollowTrackPosition(transform, mPlayer));
+        mThirdPersonCameraDict.Add(CameraType.Follow_Track_Pos_Rot, new TPCFollowTrackPositionAndRotation(transform, mPlayer));
+        mThirdPersonCameraDict.Add(CameraType.Topdown, new TPCTopDown(transform, mPlayer));
+        // We instantiate and add the new third-person camera to the dictionary
+        #if UNITY_STANDALONE
+                mThirdPersonCameraDict.Add(CameraType.Follow_Independent, new TPCFollowIndependentRotation(transform, mPlayer));
+        #endif
+        #if UNITY_ANDROID
+                mThirdPersonCameraDict.Add(CameraType.Follow_Independent, new TPCFollowIndependentRotation(transform, mPlayer, mTouchField));
+        #endif
+        mThirdPersonCamera = mThirdPersonCameraDict[mCameraType];
 
 
+
+    }
+    void Update()
+    {
+        // Update the game constant parameters every frame 
+        // so that changes applied on the editor can be reflected
+        GameConstants.Damping = mDamping;
+        GameConstants.CameraPositionOffset = mPositionOffset;
+        GameConstants.CameraAngleOffset = mAngleOffset;
+        GameConstants.MinPitch = mMinPitch;
+        GameConstants.MaxPitch = mMaxPitch;
+        GameConstants.RotationSpeed = mRotationSpeed;
+
+        mThirdPersonCamera = mThirdPersonCameraDict[mCameraType];
 
 
     } 
@@ -188,12 +225,76 @@ public class TPCTopDown : TPCBase
         Vector3 position = Vector3.Lerp(mCameraTransform.position,
             desiredPosition, Time.deltaTime * GameConstants.Damping);
         mCameraTransform.position = position;
-        Quaternion initialRotation = Quaternion.Euler(GameConstants.CameraAngleOffset); 
+        Quaternion initialRotation = Quaternion.Euler(90,0,0); 
 
         // Rotate the camera to the above initial rotation offset using Lerp
         mCameraTransform.rotation = Quaternion.Lerp(mCameraTransform.rotation, initialRotation, Time.deltaTime * GameConstants.Damping);
 
     }
+}
+public class TPCFollowIndependentRotation : TPCBase
+{
+    FixedTouchField mTouchField;
+    private float angleX = 0.0f;
+
+    public TPCFollowIndependentRotation(Transform cameraTransform, Transform playerTransform)
+        : base(cameraTransform, playerTransform)
+    {
+    }
+
+#if UNITY_ANDROID
+    public TPCFollowIndependentRotation(Transform cameraTransform, Transform playerTransform, FixedTouchField fixedTouch)
+        : base(cameraTransform, playerTransform)
+    {
+        mTouchField = fixedTouch;
+    }
+#endif
+
+    public override void Update()
+    {
+    #if UNITY_STANDALONE
+            float mx, my;
+            mx = Input.GetAxis("Mouse X");
+            my = Input.GetAxis("Mouse Y");
+    #endif
+    #if UNITY_ANDROID
+            float mx, my;
+            mx = mTouchField.TouchDist.x * Time.deltaTime;
+            my = mTouchField.TouchDist.y * Time.deltaTime;
+    #endif
+
+            // We apply the initial rotation to the camera.
+            Quaternion initialRotation = Quaternion.Euler(GameConstants.CameraAngleOffset);
+
+            Vector3 eu = mCameraTransform.rotation.eulerAngles;
+
+            angleX -= my * GameConstants.RotationSpeed;
+
+            // We clamp the angle along the Xaxis to be between the min and max pitch.
+            angleX = Mathf.Clamp(angleX, GameConstants.MinPitch, GameConstants.MaxPitch);
+
+            eu.y += mx * GameConstants.RotationSpeed;
+            Quaternion newRot = Quaternion.Euler(angleX, eu.y, 0.0f) * initialRotation;
+
+            mCameraTransform.rotation = newRot;
+
+            Vector3 forward = mCameraTransform.rotation * Vector3.forward;
+            Vector3 right = mCameraTransform.rotation * Vector3.right;
+            Vector3 up = mCameraTransform.rotation * Vector3.up;
+
+            Vector3 targetPos = mPlayerTransform.position;
+            Vector3 desiredPosition = targetPos
+                + forward * GameConstants.CameraPositionOffset.z
+                + right * GameConstants.CameraPositionOffset.x
+                + up * GameConstants.CameraPositionOffset.y;
+
+            Vector3 position = Vector3.Lerp(mCameraTransform.position,
+                desiredPosition,
+                Time.deltaTime * GameConstants.Damping);
+
+            mCameraTransform.position = position;
+        }
+
 }
 
 
@@ -202,6 +303,20 @@ public static class GameConstants
     public static Vector3 CameraAngleOffset { get; set; }
     public static Vector3 CameraPositionOffset { get; set; }
     public static float Damping { get; set; }
+    
+    public static float RotationSpeed { get; set; }
+    public static float MinPitch { get; set; }
+    public static float MaxPitch { get; set; }
 
+
+}
+
+public enum CameraType
+{
+    Track,
+    Follow_Track_Pos,
+    Follow_Track_Pos_Rot,
+    Topdown,
+    Follow_Independent, //we have not implemented this mode yet
 }
 
