@@ -19,7 +19,13 @@ public class ThirdPersonCamera : MonoBehaviour
         GameConstants.CameraPositionOffset = mPositionOffset;
         GameConstants.CameraAngleOffset = mAngleOffset;
 
-        mThirdPersonCamera = new TPCTrack(transform, mPlayer);
+        //mThirdPersonCamera = new TPCTrack(transform, mPlayer);
+        //mThirdPersonCamera = new TPCFollowTrackPosition(transform, mPlayer);
+        //mThirdPersonCamera = new TPCFollowTrackPositionAndRotation(transform, mPlayer);
+        mThirdPersonCamera = new TPCTopDown(transform, mPlayer);
+
+
+
 
     } 
     void LateUpdate() 
@@ -66,7 +72,6 @@ public class TPCTrack : TPCBase
     public override void Update() 
     { 
         Vector3 targetPos = mPlayerTransform.position;
-        Debug.Log(targetPos);
         // We add the camera offset on the Y-axis. 
         targetPos.y += GameConstants.CameraPositionOffset.y;
         mCameraTransform.LookAt(targetPos);
@@ -82,30 +87,115 @@ public abstract class TPCFollow : TPCBase
 
     public override void Update()
     {
-        // // Now we calculate the camera transformed axes.
-        // // We do this because our camera's rotation might have changed
-        // // in the derived class Update implementations. Calculate the new 
-        // // forward, up and right vectors for the camera.
-        // Vector3 forward = *** Your code ***;
-        // Vector3 right = *** Your code ***;
-        // Vector3 up = *** Your code ***;
+        // Now we calculate the camera transformed axes.
+        // We do this because our camera's rotation might have changed
+        // in the derived class Update implementations. Calculate the new 
+        // forward, up and right vectors for the camera.
+        Vector3 forward = mCameraTransform.forward;
+        Vector3 right = mCameraTransform.right;
+        Vector3 up = mCameraTransform.up;
 
-        // // We then calculate the offset in the camera's coordinate frame. 
-        // // For this we first calculate the targetPos
-        // Vector3 targetPos = mPlayerTransform.position;
+        // We then calculate the offset in the camera's coordinate frame. 
+        // For this we first calculate the targetPos
+        Vector3 targetPos = mPlayerTransform.position;
 
-        // // Add the camera offset to the target position.
-        // // Note that we cannot just add the offset.
-        // // You will need to take care of the direction as well.
-        // Vector3 desiredPosition = *** Your code ***;
+        // Add the camera offset to the target position.
+        // Note that we cannot just add the offset.
+        // You will need to take care of the direction as well.
+        Vector3 desiredPosition = targetPos + mCameraTransform.TransformDirection(GameConstants.CameraPositionOffset);
 
-        // // Finally, we change the position of the camera, 
-        // // not directly, but by applying Lerp.
-        // Vector3 position = Vector3.Lerp(mCameraTransform.position,
-        //     desiredPosition, Time.deltaTime * GameConstants.Damping);
-        // mCameraTransform.position = position;
+        // Finally, we change the position of the camera, 
+        // not directly, but by applying Lerp.
+        Vector3 position = Vector3.Lerp(mCameraTransform.position,
+            desiredPosition, Time.deltaTime * GameConstants.Damping);
+        mCameraTransform.position = position;
     }
 }
+public class TPCFollowTrackPosition : TPCFollow
+{
+    public TPCFollowTrackPosition(Transform cameraTransform, Transform playerTransform)
+        : base(cameraTransform, playerTransform)
+    {
+    }
+
+    public override void Update()
+    {
+        // Create the initial rotation quaternion based on the 
+        // camera angle offset.
+        Quaternion initialRotation =
+           Quaternion.Euler(GameConstants.CameraAngleOffset);
+
+        // Now rotate the camera to the above initial rotation offset.
+        // We do it using damping/Lerp
+        // You can change the damping to see the effect.
+        mCameraTransform.rotation = 
+            Quaternion.RotateTowards(mCameraTransform.rotation,
+                initialRotation,
+                Time.deltaTime * GameConstants.Damping);
+
+        // We now call the base class Update method to take care of the
+        // position tracking.
+        base.Update();
+    }
+}
+
+public class TPCFollowTrackPositionAndRotation : TPCFollow
+{
+    public TPCFollowTrackPositionAndRotation(Transform cameraTransform, Transform playerTransform)
+        : base(cameraTransform, playerTransform)
+    {
+    }
+
+    public override void Update()
+    {
+        // We apply the initial rotation to the camera.
+        Quaternion initialRotation =  
+            Quaternion.Euler(GameConstants.CameraAngleOffset);
+
+        // Allow rotation tracking of the player
+        // so that our camera rotates when the Player rotates and at the same
+        // time maintain the initial rotation offset.
+        mCameraTransform.rotation = Quaternion.Lerp(
+            mCameraTransform.rotation,
+            mPlayerTransform.rotation * initialRotation,
+            Time.deltaTime * GameConstants.Damping);
+
+        base.Update();
+    }
+}
+
+public class TPCTopDown : TPCBase
+{
+    public TPCTopDown(Transform cameraTransform, Transform playerTransform)
+        : base(cameraTransform, playerTransform)
+    {
+    }
+
+    public override void Update()
+    {
+        Vector3 targetPos = mPlayerTransform.position;
+        // We add the camera offset on the Y-axis. 
+        targetPos.y += GameConstants.CameraPositionOffset.y;
+        // We apply the initial rotation to the camera.
+
+        // Add the camera offset to the target position.
+        // Note that we cannot just add the offset.
+        // You will need to take care of the direction as well.
+        Vector3 desiredPosition = targetPos;
+
+        // Finally, we change the position of the camera, 
+        // not directly, but by applying Lerp.
+        Vector3 position = Vector3.Lerp(mCameraTransform.position,
+            desiredPosition, Time.deltaTime * GameConstants.Damping);
+        mCameraTransform.position = position;
+        Quaternion initialRotation = Quaternion.Euler(GameConstants.CameraAngleOffset); 
+
+        // Rotate the camera to the above initial rotation offset using Lerp
+        mCameraTransform.rotation = Quaternion.Lerp(mCameraTransform.rotation, initialRotation, Time.deltaTime * GameConstants.Damping);
+
+    }
+}
+
 
 public static class GameConstants
 {
