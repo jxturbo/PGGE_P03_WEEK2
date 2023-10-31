@@ -13,6 +13,8 @@ public class PlayerMovemnt : MonoBehaviour
     public Animator playerAnim;
     public float x;
     public float z;
+    public bool mFollowCameraForward;
+    public float mTurnRate;
     #if UNITY_ANDROID
         public FixedJoystick mJoystick;
     #endif
@@ -49,9 +51,22 @@ public class PlayerMovemnt : MonoBehaviour
         // x = Input.GetAxis("Horizontal");
         playerAnim.SetFloat("PosX",x);
         playerAnim.SetFloat("PosZ",z);
-        //used to rotate the player in the event you cant use the mouse to control camera "direction" \/
-        transform.Rotate(0.0f, x * 50f * Time.deltaTime, 0.0f);
+
         Vector3 move = transform.right * x + transform.forward * z;
+        //used to rotate the player in the event you cant use the mouse to control camera "direction" \/
+        if (mFollowCameraForward && move != Vector3.zero)
+        {
+            // rotate Player towards the camera forward.
+            Vector3 eu = Camera.main.transform.rotation.eulerAngles;
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                Quaternion.Euler(0.0f, eu.y, 0.0f),
+                mTurnRate * Time.deltaTime);
+        }
+        else
+        {
+            transform.Rotate(0.0f, x * 50f * Time.deltaTime, 0.0f);
+        }
 
         controller.Move(move * speed * Time.deltaTime);
         //mimics gravity by pulling player down
