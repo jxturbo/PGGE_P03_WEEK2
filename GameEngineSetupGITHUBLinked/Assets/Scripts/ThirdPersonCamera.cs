@@ -97,7 +97,8 @@ public abstract class TPCBase
         mCameraTransform = cameraTransform; 
         mPlayerTransform = playerTransform; 
 
-    } 
+    }
+ 
     public abstract void Update(); 
 } 
 public class TPCTrack : TPCBase 
